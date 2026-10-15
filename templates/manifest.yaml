@@ -1,0 +1,135 @@
+# ============================================================
+# Binary Label Skill - Version Manifest
+#
+# 每个版本目录必须包含本文件。
+# 描述该版本“使用了什么”，只增不改：
+# 版本完成后本文件冻结，禁止回写。
+# 执行进度记录在 status.yaml，不在这里。
+# ============================================================
+
+# 版本号
+version: "v_0"
+
+# 所属模型（流水线归属）：task.yaml models.candidates 的 key，如 h256
+# 本文件位于 <model>/<version>/ 下；各模型流水线独立，互不干扰
+model: "h256"
+
+# 父版本。v_0 冷启动固定为 null
+parent_version: null
+
+# 本版本类型：cold_start / iteration
+version_type: "cold_start"
+
+# 使用的 task.yaml 快照关键内容
+# 正式做法是在本版本目录中保存 task.yaml 完整副本
+task_config_snapshot: "<model>/v_0/task.yaml"
+
+# ---------- 标签标准 ----------
+
+# 本版本使用的标签标准快照目录（随模型流水线版本化）
+standard_dir: "<model>/v_0/standard/"
+
+# scenes.yaml 中子场景数量
+scene_count: null
+
+# 相对父版本的标签标准变化
+# 新版才填写，v_0 留空
+standard_changes: {}
+# 示例：
+# standard_changes:
+#   new_scenes: ["scene_004"]
+#   modified_scenes: ["scene_001"]
+#   removed_scenes: []
+#   boundary_cases_added: 12
+#   llm_prompt_changed: true
+
+# ---------- Regex ----------
+
+regex:
+  # 本版本使用的 Regex 配置（随模型流水线版本化）
+  config: "<model>/v_0/standard/regex/regex_config.yaml"
+
+  # 规则数量
+  rule_count: null
+
+  # 历史 regex_cases.jsonl 回归测试结果
+  regression_test_passed: null
+
+  # 相对父版本的变化
+  changes: null
+
+# ---------- 数据集 ----------
+
+dataset:
+  # 各数据集规模
+  train_rows: null
+  validation_rows: null
+  regression_eval_rows: null
+
+  # gold 为全局资产，不属于单版本，这里只记录评估用时的大小
+  gold_rows_at_eval: null
+
+  # train 数据构成
+  train_composition:
+    real_llm_labeled: null
+    synthetic: null
+    human_labeled: null
+
+  # 合成数据信息
+  synthesis:
+    enabled: null
+    generator_models: []
+    total_synthetic_rows: null
+
+# ---------- 模型 ----------
+
+models:
+  # 本版本训练的候选模型
+  trained: []
+  # 示例： ["h256", "h288", "macbert"]
+
+  # 最终选定模型
+  selected_model: null
+
+  # 选定模型的关键超参数与 threshold
+  selected_hparams: {}
+  selected_threshold: null
+
+  # 各模型主要指标
+  metrics_summary: {}
+  # 示例：
+  # metrics_summary:
+  #   macbert:
+  #     precision: 0.92
+  #     recall: 0.84
+  #     f1: 0.88
+  #   h256:
+  #     precision: 0.90
+  #     recall: 0.81
+  #     f1: 0.85
+
+# ---------- 全量扫描 ----------
+
+scan:
+  # 扫描使用的线上数据范围
+  data_range: null
+
+  # Regex 初筛后规模
+  prefiltered_rows: null
+
+  # BERT 判定正例规模
+  predicted_positive_rows: null
+
+# ---------- 关键配置记录 ----------
+
+# 本版本实际生效的上下文轮数等关键配置
+# 必须与 task.yaml 一致，出现不一致时以 task.yaml 为准并报告
+key_config:
+  llm_label_turns: null
+  bert_turns: null
+  regex_turns: null
+  random_seed: null
+
+# 创建时间与完成时间
+created_at: null
+completed_at: null

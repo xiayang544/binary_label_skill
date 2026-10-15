@@ -1,0 +1,513 @@
+# ============================================================
+# Binary Label Skill - Task Configuration
+# 本文件只保存任务级、跨版本稳定的配置。
+# 当前版本、执行状态、当前最佳模型等动态信息不要写在这里。
+# ============================================================
+
+task:
+  # 任务唯一名称，建议使用英文/下划线，避免空格
+  name: "example_binary_label"
+
+  # 标签中文名称
+  label_name: ""
+
+  # 标签定义
+  # 需要明确说明什么情况属于正例
+  label_definition: ""
+
+  # 业务场景
+  # 可选值：
+  #   wecom            企微
+  #   outbound_call    外呼
+  #   rider_assistant  骑手助手
+  #   other            其他
+  business_scene: ""
+
+  # 检测粒度固定为 turn
+  detection_granularity: "turn"
+
+  # 当前 Turn 中被检测的角色
+  # 根据实际数据填写，例如 assistant / model / agent
+  target_role: "assistant"
+
+
+# ============================================================
+# 输入数据
+# ============================================================
+
+input:
+  # 用户提供的部分人工标注数据
+  seed_annotation_path: ""
+
+  # 线上全量数据地址
+  online_data_path: "/mnt/dolphinfs/hdd_pool/docker/user/hadoop-peisongpa-llm-dolphin/hadoop-peisongpa-llm-dolphin/fanhuichuan/data/online_data"
+
+  # Gold 数据
+  gold_positive_path: "data/gold/gold_positive.xlsx"
+  gold_negative_path: "data/gold/gold_negative.xlsx"
+
+
+# ============================================================
+# 上下文配置
+#
+# 所有轮数均由人工给定。
+# Skill 禁止自行判断“简单问题/复杂问题”后修改这些参数。
+#
+# 拼接说明：当前 Turn 始终单独存放于 current_turn 字段；
+# 历史轮渲染为 "AI: xxx\n用户: xxx" 行式文本，由 src/text_utils.py
+# 统一实现（训练/推理/LLM 标注共用，不使用 "[SEP]" 等字符串分隔符）。
+# ============================================================
+
+context:
+  # 大模型标注时使用的上下文轮数
+  # 如果需要完整对话，可以设置为 null，并由脚本解释为 full conversation
+  llm_label_turns: null
+
+  # BERT 训练和推理时使用的上下文轮数
+  # 训练和推理必须完全一致
+  bert_turns: 1
+
+  # Regex 判断主题时向前使用的轮数
+  regex_turns: 10
+
+
+# ============================================================
+# LLM 接入配置
+# 打标 / 合成 / 归因共用（scripts/label_llm.py、generate_synthetic.py、classify_errors.py）
+# 优先级：本节 > 环境变量 LLM_BASE_URL / LLM_API_KEY > 内置默认网关
+# ============================================================
+
+llm_api:
+  base_url: "https://aigc.sankuai.com/v1/openai/native"
+
+  # 建议留空走环境变量 LLM_API_KEY，避免 key 随版本目录快照扩散
+  api_key: ""
+
+  # 显示名 → 网关模型名（未列出的模型默认取小写）
+  gateway_names:
+    "LongCat-2.0": "longcat-2.0"
+    "LongCat-Flash-Chat": "longcat-flash-chat"
+    "deepseek-v4-flash": "deepseek-v4-flash"
+
+
+# ============================================================
+# 子场景配置
+# ============================================================
+
+scene:
+  # 每个正例是否必须属于一个细分子场景
+  positive_scene_required: true
+
+  # 是否允许一个正例属于多个子场景
+  # 当前方案建议 false
+  allow_multi_scene: false
+
+  # scene id 前缀
+  id_prefix: "scene_"
+
+  # scene id 数字位数，例如 scene_001
+  id_width: 3
+
+
+# ============================================================
+# Regex 初筛
+# ============================================================
+
+regex:
+  enabled: true
+
+  # Regex 规则按版本保存在（随模型流水线版本化）：
+  # <model>/v_k/standard/regex/
+  config_filename: "regex_config.yaml"
+  cases_filename: "regex_cases.jsonl"
+  report_filename: "regex_report.yaml"
+
+  # 每轮从 Regex 未召回数据中抽样检查，
+  # 用于发现 regex_miss
+  rejected_sample:
+    enabled: true
+
+    # 根据数据量可人工调整
+    sample_size: 500
+
+
+# ============================================================
+# 冷启动 LLM 标注
+# ============================================================
+
+cold_start_labeling:
+  model: "LongCat-Flash-Chat"
+
+  # 从 Regex 初筛后的数据中采样
+  sample_size: 2000
+
+  human_review:
+    # 所有 LLM 判定正例都进入人工复核
+    include_all_positive: true
+
+    # 负例数量：
+    # max(positive_count * negative_ratio, minimum_negative)
+    negative_ratio: 2
+    minimum_negative: 100
+
+
+# ============================================================
+# 迭代阶段多 LLM 打标
+# ============================================================
+
+iteration_labeling:
+  models:
+    - "LongCat-2.0"
+    - "LongCat-Flash-Chat"
+    - "deepseek-v4-flash"
+
+  # 当前方案人工复核仍为最终标准
+  final_label_source: "human"
+
+  vote:
+    enabled: true
+
+    # 保存三个模型分别的结果
+    keep_individual_results: true
+
+    # vote 仅作为人工复核辅助信息
+    vote_is_final_label: false
+
+
+# ============================================================
+# 迭代样本采样
+# ============================================================
+
+iteration_sampling:
+  # BERT 预测为正的样本是否全部进入候选池
+  include_all_predicted_positive: true
+
+  # 采样负例数 = 正例数 * negative_ratio
+  negative_ratio: 2
+
+  # 负例优先策略
+  # 脚本可根据顺序进行加权采样
+  negative_sampling_priority:
+    - "near_threshold"
+    - "historical_fp_scene"
+    - "historical_fn_scene"
+    - "low_confidence"
+    - "random"
+
+
+# ============================================================
+# 数据合成
+# ============================================================
+
+synthesis:
+  enabled: true
+
+  models:
+    - "LongCat-2.0"
+    - "LongCat-Flash-Chat"
+    - "deepseek-v4-flash"
+
+  # ---------- 冷启动 ----------
+
+  cold_start:
+    # 满足任一条件即触发合成
+    trigger:
+      overall_positive_ratio_below: 0.20
+      scene_positive_count_below: 20
+
+    # 每个模型、每个需要补充的子场景合成数量
+    samples_per_model_per_scene: 100
+
+  # ---------- 迭代 ----------
+
+  iteration:
+    # FP/FN hard case 合成倍数
+    # 例如真实 hard case 共 100 条，则目标合成约 300 条
+    hardcase_multiplier: 3
+
+    # 建议按照 scene_id + error_type 分层合成
+    stratify_by:
+      - "scene_id"
+      - "error_type"
+
+
+# ============================================================
+# 数据集规则
+# ============================================================
+
+dataset:
+  # 所有正式数据均保存两份
+  formats:
+    - "xlsx"
+    - "jsonl"
+
+  # 正式程序处理优先读取 jsonl
+  program_primary_format: "jsonl"
+
+  # 人工交互优先使用 xlsx
+  human_primary_format: "xlsx"
+
+  train:
+    allow_data_sources:
+      - "real"
+      - "synthetic"
+
+    allow_annotation_sources:
+      - "llm"
+      - "human"
+
+    # 当前方案：
+    # 迭代发现的真实 FP/FN 不进入训练集
+    allow_iteration_real_hardcases: false
+
+  validation:
+    enabled: true
+
+    # 防止同一 conversation 泄漏到 train 和 validation
+    split_unit: "conversation_id"
+
+  regression_eval:
+    enabled: true
+
+    # 人工确认的迭代 FP/FN 加入 regression_eval
+    include_verified_fp_fn: true
+
+    # 是否累计历史所有 regression case
+    cumulative: true
+
+  gold:
+    # 收纳策略（SKILL.md §8）：每轮人工复核完成后，
+    # 本轮全部 human_verified 真实样本全量合入 data/gold/
+    # （build_gold.py 默认 --mode all，按 sample_id 去重）
+    include_all_human_verified: true
+
+    # 需求变更（标签标准演进）允许修正历史 gold label：
+    # 只能通过 build_gold.py --update-labels --reason 执行，
+    # label_history 保留完整审计链；禁止直接手改 gold 文件
+    allow_relabel_on_requirement_change: true
+
+    # 评估隔离：gold 不参与训练与任何调优，仅用于独立评估与验收
+    allow_training: false
+    allow_threshold_tuning: false
+    allow_hparam_tuning: false
+
+
+# ============================================================
+# 候选模型
+#
+# 每个候选模型是一条完全独立的流水线：可启用 1 个或多个，
+# 各模型独立执行「冷启动 → 迭代」，版本链与全部产物互不干扰。
+# 单次工作流只针对一个模型（多个 enabled 时脚本需 --model 显式指定）。
+#
+# 模型版本目录 <dir>/v_<k>/ 承载该模型全部产物（standard 到 scan）。
+# dir 缺省取候选 key（如 h256 → h256/v_0/）；
+# 如需其他目录风格可显式指定，例如 dir: "h_256" → h_256/v_0/。
+#
+# 候选默认为 BERT 类（微调流水线）。
+# 加 type: laya 则为零训练候选（laya 决策引擎，约定见 SKILL.md §17）：
+# 跳过合成/训练/超参搜索，只做 threshold 搜索。
+# ============================================================
+
+models:
+  candidates:
+    h256:
+      enabled: true
+      # dir: "h_256"          # 可选，模型目录名覆盖
+      path: "/mnt/dolphinfs/hdd_pool/docker/user/hadoop-peisongpa-llm-dolphin/hadoop-peisongpa-llm-dolphin/xiayang14/huggingface.co/hfl/minirbt-h256"
+
+    h288:
+      enabled: true
+      path: "/mnt/dolphinfs/hdd_pool/docker/user/hadoop-peisongpa-llm-dolphin/hadoop-peisongpa-llm-dolphin/xiayang14/huggingface.co/hfl/minirbt-h288"
+
+    macbert:
+      enabled: true
+      path: "/mnt/dolphinfs/hdd_pool/docker/user/hadoop-peisongpa-llm-dolphin/hadoop-peisongpa-llm-dolphin/xiayang14/huggingface.co/hfl/chinese-macbert-base"
+
+    # laya 零训练候选示例（需要时将 enabled 改为 true）
+    laya_multilingual:
+      enabled: false
+      type: laya              # 必填：laya 候选标识
+      variant: multilingual   # english / multilingual / typed-decisions
+      # 本地 checkpoint 目录；留空则从 HF Hub 下载
+      # （convaiinnovations/laya 的 multilingual 子目录）
+      path: ""
+      # 长文档必须显式传：multilingual 默认 1024 截断，长文用 8192
+      max_len: 8192
+      # dir: "laya_ml"        # 可选，模型目录名覆盖
+
+    # Kev 已训练 checkpoint 候选：仅做阈值搜索、评估与扫描
+    kev_local:
+      enabled: false
+      type: kev
+      path: ""               # 必填：Kev run/checkpoint 目录
+      max_state: 4096        # Kev state token 上限（384~65536）
+      # 每个版本需冻结 standard/kev_question.yaml：
+      # question_id: positive_check
+      # positive_key: 是
+      # question: {type: choice, instructions: "是否命中标签", criteria: {是: "正例描述", 否: "负例描述"}}
+
+
+# ============================================================
+# BERT 训练配置
+# ============================================================
+
+training:
+  # 默认随机种子
+  random_seed: 42
+
+  # 最大序列长度
+  # 可根据具体模型调整
+  max_length: 512
+
+  # 超参数搜索
+  hparam_search:
+    enabled: true
+
+    learning_rate:
+      - 1.0e-5
+      - 2.0e-5
+      - 3.0e-5
+      - 5.0e-5
+
+    batch_size:
+      - 16
+      - 32
+
+    epochs:
+      - 3
+      - 4
+      - 5
+
+    weight_decay:
+      - 0.0
+      - 0.01
+
+  # threshold 搜索
+  threshold_search:
+    enabled: true
+
+    # 起始阈值
+    min: 0.10
+
+    # 结束阈值
+    max: 0.90
+
+    # 搜索步长
+    step: 0.01
+
+    # threshold 搜索只能使用 validation
+    dataset: "validation"
+
+
+# ============================================================
+# 模型选择
+# ============================================================
+
+model_selection:
+  # 主指标
+  primary_metric: "f1"
+
+  # 同等情况下优先 precision 或 recall
+  tie_breaker:
+    - "precision"
+    - "recall"
+
+  # 是否考虑 regression eval
+  require_regression_no_degradation: true
+
+
+# ============================================================
+# 验收与停止条件
+# ============================================================
+
+acceptance:
+  precision_min: 0.90
+  recall_min: 0.80
+
+  # 是否要求 regression_eval 不发生明显退化
+  regression_no_degradation: true
+
+  # ---------- 迭代停止保护（iteration.md 步骤 14）----------
+  # 最大迭代版本数（v_1 起），达到后即使未达标也停止并报告
+  max_iterations: 5
+
+  # 与上一版本 F1 的最小提升，低于该值判定为无改善并停止
+  min_improvement: 0.005
+
+  # 可选：
+  # 是否要求关键子场景达到最低 recall
+  scene_recall:
+    enabled: false
+    default_min: 0.80
+
+    # 如有关键场景可以单独配置
+    overrides: {}
+    # 示例：
+    # scene_003: 0.90
+
+
+# ============================================================
+# FP/FN 错误类型
+# ============================================================
+
+error_analysis:
+  fn_types:
+    - "new_scene"
+    - "boundary_definition"
+    - "insufficient_context"
+    - "bert_capacity"
+    - "regex_miss"
+    - "other"
+
+  fp_types:
+    - "keyword_false_trigger"
+    - "negation"
+    - "quoted_content"
+    - "context_reversal"
+    - "boundary_definition"
+    - "other"
+
+
+# ============================================================
+# 版本管理
+# ============================================================
+
+versioning:
+  cold_start_version: "v_0"
+  iteration_prefix: "v_"
+
+  # 历史版本完成后禁止修改
+  freeze_completed_version: true
+
+  # 新版本必须完整保存 standard 快照
+  snapshot_standard_each_version: true
+
+  # 每轮保留完整 train / regression_eval，同时保留 delta
+  keep_full_dataset: true
+  keep_dataset_delta: true
+
+
+# ============================================================
+# 人工暂停点
+# ============================================================
+
+human_gate:
+  enabled: true
+
+  pause_states:
+    - "waiting_standard_review"
+    - "waiting_human_review"
+
+
+# ============================================================
+# 输出与日志
+# ============================================================
+
+output:
+  generate_iteration_report: true
+
+  save_raw_llm_response: true
+
+  save_model_predictions: true
+
+  save_logs: true

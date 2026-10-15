@@ -1,0 +1,75 @@
+# ============================================================
+# Binary Label Skill - Version Status
+#
+# 每个版本目录必须包含本文件。
+# 只记录当前执行进度和产物状态，不记录任务级配置。
+# 步骤 ID 与 workflow 小节标题中的 ID 一一对应：
+#   cold_start.md  -> cold_start:step_XX_xxx
+#   iteration.md   -> iteration:step_XX_xxx
+# ============================================================
+
+# 版本号，如 v_0、v_1
+version: "v_0"
+
+# 所属模型（流水线归属）：task.yaml models.candidates 的 key，如 h256
+# 本文件位于 <model>/<version>/ 下；各模型流水线独立，互不干扰
+model: "h256"
+
+# 当前执行到的步骤 ID
+# 冷启动示例：cold_start:step_06_human_review
+# 迭代示例：  iteration:step_04_human_review
+current_step: "cold_start:step_01_init"
+
+# 版本状态
+# 允许值：
+#   initializing            初始化中
+#   running                 正在执行
+#   waiting_standard_review 等待人工确认标签标准
+#   waiting_human_review    等待人工完成复核
+#   completed               本版本完成
+status: "initializing"
+
+# 已完成步骤 ID 列表（按执行顺序）
+# 恢复执行时禁止重跑其中产物完整的步骤
+completed_steps: []
+# 示例：
+# completed_steps:
+#   - "cold_start:step_01_init"
+#   - "cold_start:step_02_standard_design"
+
+# 各步骤关键产物检查表
+# exists: 文件是否存在
+# rows:   jsonl/xlsx 行数（不适用时可省略）
+# 恢复执行前必须重新校验 exists；产物缺失的步骤视为未完成
+artifacts: {}
+# 示例：
+# artifacts:
+#   standard/scenes.yaml:
+#     exists: true
+#   labeling/coldstart_sample_2000.jsonl:
+#     exists: true
+#     rows: 2000
+#   labeling/llm/longcat_flash.jsonl:
+#     exists: true
+#     rows: 2000
+
+# 人工暂停信息
+# 进入 waiting_* 状态时必须填写；恢复执行后清空
+pause_info:
+  # 需要人工处理的文件路径
+  waiting_for: null
+  # 简要说明人工需要做什么
+  instruction: null
+  # 进入暂停的时间
+  paused_at: null
+
+# 简要执行日志（每条含时间、步骤、事件）
+# 详细日志保存在版本目录 logs/ 下
+event_log: []
+# 示例：
+# event_log:
+#   - { time: "2026-09-28 10:00:00", step: "cold_start:step_02_standard_design", event: "standard draft generated" }
+#   - { time: "2026-09-28 10:05:00", step: "cold_start:step_02_standard_design", event: "paused for standard review" }
+
+# 本版本最后更新时间
+updated_at: null

@@ -1,0 +1,622 @@
+# ============================================================
+# Binary Label Skill - Data Schema
+#
+# 所有 JSONL / Excel 数据必须遵守本 Schema。
+#
+# 原则：
+# 1. 所有阶段使用统一字段名。
+# 2. 不适用字段允许为空，但禁止同一个概念使用不同字段名。
+# 3. 正例必须有 scene_id。
+# 4. 所有数据必须能够追溯来源。
+# ============================================================
+
+schema_version: "1.0"
+
+
+# ============================================================
+# 基础数据 Schema
+# 所有正式样本必须至少包含这些字段
+# ============================================================
+
+base_fields:
+
+  sample_id:
+    type: string
+    required: true
+    nullable: false
+    description: >
+      样本唯一 ID。整个项目内唯一。
+      同一个样本跨版本流转时尽量保持不变。
+
+  conversation_id:
+    type: string
+    required: true
+    nullable: false
+    description: >
+      对话唯一 ID。
+      train/validation 拆分时应以 conversation_id 为最小隔离单位，
+      避免同一对话进入不同数据集造成泄漏。
+
+  turn_id:
+    type:
+      - integer
+      - string
+    required: true
+    nullable: false
+    description: 当前被检测 Turn 的位置或唯一标识。
+
+  data_date:
+    type: string
+    format: date
+    required: true
+    nullable: true
+    description: >
+      样本所属线上数据日期（YYYY-MM-DD），来自线上数据按日期命名的文件
+      （如 2026-05-01_recruitment_full_cc2.json），提取不到时回退记录 ctime 的日期。
+      线上全量数据随日期增长；初筛/扫描产物必须携带该字段，
+      增量处理（--since/--until/--append）以此为准。
+
+  business_scene:
+    type: string
+    required: true
+    nullable: false
+    allowed_values:
+      - wecom
+      - outbound_call
+      - rider_assistant
+      - other
+
+  current_turn:
+    type: string
+    required: true
+    nullable: false
+    description: >
+      当前真正需要进行二分类判断的模型输出内容。
+
+  context:
+    type: string
+    required: true
+    nullable: true
+    description: >
+      按当前任务上下文策略拼接后的上下文。
+      如果当前任务不使用上下文允许为空。
+
+  context_turns:
+    type: integer
+    required: true
+    nullable: true
+    description: >
+      当前 context 实际包含的历史 Turn 数。
+      完整对话场景可以为空，并通过 context_mode 标记。
+
+  context_mode:
+    type: string
+    required: true
+    nullable: false
+    allowed_values:
+      - current_turn_only
+      - fixed_turns
+      - full_conversation
+
+  label:
+    type: string
+    required: true
+    nullable: true
+    allowed_values:
+      - positive
+      - negative
+    description: >
+      当前正式 label。
+      尚未完成标注的候选数据允许为空。
+
+  scene_id:
+    type: string
+    required: true
+    nullable: true
+    description: >
+      正例细分子场景 ID，例如 scene_001。
+      label=positive 时必须非空；
+      label=negative 时通常为空。
+
+  scene_name:
+    type: string
+    required: false
+    nullable: true
+    description: >
+      scene_id 对应的可读名称。
+      以 scenes.yaml 为最终标准。
+
+  data_source:
+    type: string
+    required: true
+    nullable: false
+    allowed_values:
+      - real
+      - synthetic
+    description: >
+      real 表示真实线上/人工数据；
+      synthetic 表示大模型合成数据。
+
+  annotation_source:
+    type: string
+    required: true
+    nullable: true
+    allowed_values:
+      - human
+      - llm
+      - bert
+      - regex
+      - unknown
+    description: >
+      当前 label 的来源。
+      未标注候选数据允许为空或 unknown。
+
+  human_verified:
+    type: boolean
+    required: true
+    nullable: false
+    default: false
+
+  version:
+    type: string
+    required: true
+    nullable: false
+    description: >
+      当前数据首次产生或正式进入流程的版本，
+      例如 v_0、v_1。
+
+  source_version:
+    type: string
+    required: false
+    nullable: true
+    description: >
+      数据继承自哪一版本。
+      例如 v_2 中 train 数据来自 v_1 时可以记录 v_1。
+
+  created_at:
+    type: string
+    format: datetime
+    required: false
+    nullable: true
+
+  updated_at:
+    type: string
+    format: datetime
+    required: false
+    nullable: true
+
+
+# ============================================================
+# 原始对话可选字段
+# ============================================================
+
+conversation_fields:
+
+  full_conversation:
+    type: string
+    required: false
+    nullable: true
+    description: >
+      完整对话文本。
+      如果原始数据允许，建议保留，便于重新构造不同轮数上下文。
+
+  raw_record:
+    type: string
+    required: false
+    nullable: true
+    description: >
+      必要时保存原始记录或其序列化结果。
+
+  user_text:
+    type: string
+    required: false
+    nullable: true
+
+  assistant_text:
+    type: string
+    required: false
+    nullable: true
+
+
+# ============================================================
+# Regex 阶段扩展字段
+# ============================================================
+
+regex_fields:
+
+  regex_hit:
+    type: boolean
+    required: false
+    nullable: true
+
+  regex_rule_ids:
+    type: list[string]
+    required: false
+    nullable: true
+    description: 命中的 Regex rule ID 列表。
+
+  regex_scene_ids:
+    type: list[string]
+    required: false
+    nullable: true
+
+  regex_version:
+    type: string
+    required: false
+    nullable: true
+    description: >
+      使用哪个版本的 Regex，例如 v_3。
+
+  regex_score:
+    type: float
+    required: false
+    nullable: true
+
+
+# ============================================================
+# LLM 标注扩展字段
+# ============================================================
+
+llm_annotation_fields:
+
+  llm_label:
+    type: string
+    required: false
+    nullable: true
+    allowed_values:
+      - positive
+      - negative
+
+  llm_scene_id:
+    type: string
+    required: false
+    nullable: true
+
+  llm_reason:
+    type: string
+    required: false
+    nullable: true
+
+  label_model:
+    type: string
+    required: false
+    nullable: true
+    description: >
+      例如：
+      LongCat-2.0
+      LongCat-Flash-Chat
+      deepseek-v4-flash
+
+  label_prompt_version:
+    type: string
+    required: false
+    nullable: true
+
+  llm_raw_response:
+    type: string
+    required: false
+    nullable: true
+
+  llm_parse_success:
+    type: boolean
+    required: false
+    nullable: true
+
+
+# ============================================================
+# 多模型 Vote 扩展字段
+# ============================================================
+
+vote_fields:
+
+  llm_labels:
+    type: object
+    required: false
+    nullable: true
+    description: >
+      多个 LLM 的 label。
+      JSONL 中示例：
+      {
+        "LongCat-2.0": "positive",
+        "LongCat-Flash-Chat": "positive",
+        "deepseek-v4-flash": "negative"
+      }
+
+  llm_scene_ids:
+    type: object
+    required: false
+    nullable: true
+
+  vote_label:
+    type: string
+    required: false
+    nullable: true
+    allowed_values:
+      - positive
+      - negative
+      - disagreement
+
+  vote_scene_id:
+    type: string
+    required: false
+    nullable: true
+
+  vote_agreement_count:
+    type: integer
+    required: false
+    nullable: true
+
+  vote_total_count:
+    type: integer
+    required: false
+    nullable: true
+
+  need_human_review:
+    type: boolean
+    required: false
+    nullable: true
+
+
+# ============================================================
+# 人工复核扩展字段
+# ============================================================
+
+human_review_fields:
+
+  human_label:
+    type: string
+    required: false
+    nullable: true
+    allowed_values:
+      - positive
+      - negative
+
+  human_scene_id:
+    type: string
+    required: false
+    nullable: true
+
+  human_error_type:
+    type: string
+    required: false
+    nullable: true
+
+  human_comment:
+    type: string
+    required: false
+    nullable: true
+
+  reviewer:
+    type: string
+    required: false
+    nullable: true
+
+  reviewed_at:
+    type: string
+    format: datetime
+    required: false
+    nullable: true
+
+
+# ============================================================
+# 合成数据扩展字段
+# ============================================================
+
+synthetic_fields:
+
+  generator_model:
+    type: string
+    required: false
+    nullable: true
+    description: >
+      data_source=synthetic 时必填。
+
+  synthesis_prompt_version:
+    type: string
+    required: false
+    nullable: true
+
+  synthesis_scene_id:
+    type: string
+    required: false
+    nullable: true
+
+  source_hardcase_id:
+    type: string
+    required: false
+    nullable: true
+    description: >
+      如果基于真实 FP/FN 生成 hard case，
+      记录源样本 sample_id。
+
+  source_error_type:
+    type: string
+    required: false
+    nullable: true
+
+  synthesis_batch_id:
+    type: string
+    required: false
+    nullable: true
+
+
+# ============================================================
+# BERT 预测扩展字段
+# ============================================================
+
+bert_prediction_fields:
+
+  bert_model:
+    type: string
+    required: false
+    nullable: true
+    description: h256 / h288 / macbert
+
+  bert_model_version:
+    type: string
+    required: false
+    nullable: true
+
+  bert_score:
+    type: float
+    required: false
+    nullable: true
+    minimum: 0.0
+    maximum: 1.0
+
+  bert_threshold:
+    type: float
+    required: false
+    nullable: true
+    minimum: 0.0
+    maximum: 1.0
+
+  bert_prediction:
+    type: string
+    required: false
+    nullable: true
+    allowed_values:
+      - positive
+      - negative
+
+
+# ============================================================
+# FP / FN 归因扩展字段
+# ============================================================
+
+error_analysis_fields:
+
+  error_type:
+    type: string
+    required: false
+    nullable: true
+    allowed_values:
+      # FN
+      - new_scene
+      - boundary_definition
+      - insufficient_context
+      - bert_capacity
+      - regex_miss
+
+      # FP
+      - keyword_false_trigger
+      - negation
+      - quoted_content
+      - context_reversal
+
+      # 通用
+      - other
+
+  error_side:
+    type: string
+    required: false
+    nullable: true
+    allowed_values:
+      - FP
+      - FN
+      - TP
+      - TN
+
+  error_comment:
+    type: string
+    required: false
+    nullable: true
+
+
+# ============================================================
+# 数据集归属字段
+# ============================================================
+
+dataset_fields:
+
+  dataset_split:
+    type: string
+    required: false
+    nullable: true
+    allowed_values:
+      - train
+      - validation
+      - regression_eval
+      - gold
+      - candidate
+      - none
+
+  is_delta:
+    type: boolean
+    required: false
+    nullable: true
+    default: false
+
+  parent_sample_id:
+    type: string
+    required: false
+    nullable: true
+
+  label_history:
+    type: list[object]
+    required: false
+    nullable: true
+    description: >
+      仅 Gold 样本使用：需求变更改标（build_gold.py --update-labels）时
+      逐次追加一条审计记录，字段含 label（原 label）、version（原版本）、
+      reviewer（原审核人）、changed_in_version（变更版本）、reason
+      （变更原因）、changed_at（变更时间），保留从原 label 到当前
+      label 的完整审计链。
+
+
+# ============================================================
+# 跨字段校验规则
+# scripts/data_io.py 或独立 validator 必须执行
+# ============================================================
+
+validation_rules:
+
+  - name: positive_requires_scene
+    condition: "label == 'positive'"
+    require:
+      - scene_id
+
+  - name: negative_scene_should_be_empty
+    condition: "label == 'negative'"
+    expect_null:
+      - scene_id
+
+  - name: synthetic_requires_generator
+    condition: "data_source == 'synthetic'"
+    require:
+      - generator_model
+      - synthesis_prompt_version
+
+  - name: human_annotation_requires_human_label
+    condition: "annotation_source == 'human'"
+    require:
+      - human_label
+
+  - name: human_verified_requires_human_annotation
+    condition: "human_verified == true"
+    require:
+      - human_label
+
+  - name: bert_prediction_requires_score
+    condition: "bert_prediction != null"
+    require:
+      - bert_score
+      - bert_threshold
+      - bert_model
+
+  - name: train_must_not_contain_gold
+    condition: "dataset_split == 'train'"
+    forbid:
+      - "gold_source"
+
+  - name: gold_cannot_be_synthetic
+    condition: "dataset_split == 'gold'"
+    expect:
+      data_source: "real"
+      human_verified: true
+
+  - name: regression_eval_must_be_real
+    condition: "dataset_split == 'regression_eval'"
+    expect:
+      data_source: "real"
+      human_verified: true
