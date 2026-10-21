@@ -72,7 +72,7 @@ def build_kev_scorer(root, model, version, task_cfg=None, checkpoint=None):
         from kev.model import training_context
         from kev.predictors import LocalPredictor
     except ImportError as exc:
-        raise ImportError("Kev 候选需要安装 safety/kev（pip install -e <safety/kev>）") from exc
+        raise ImportError("Kev 候选需要安装 kev 包（pip install -e <kev 源码目录>）") from exc
     context = training_context(max_state)
     device = "cuda" if torch.cuda.is_available() else "cpu"
     predictor = LocalPredictor(path, device, context=context)

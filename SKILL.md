@@ -127,7 +127,7 @@ Skill 禁止自行判断“简单任务”或“复杂任务”，也禁止自�
 7. 修改脚本后必须重新执行受影响步骤的产物校验；
 8. 候选配置含 `type: laya`（缺省视为 BERT 类）时为**零训练候选**，走 §17 约定：训练/超参搜索/合成类步骤跳过，打分结果以 `laya_prob` 字段落盘，threshold 搜索沿用 `tune_threshold` 的 objective 与 `training.threshold_search` 配置。
 
-运行环境：需要 `pandas / pyyaml / openpyxl / torch / transformers / sklearn / openai`，可参考 `safety/env/law_violation_py312`。laya 候选额外需要 `laya` 包（本地源码见 §5，`pip install laya` 或将本地 checkout 加入 `PYTHONPATH`）。
+运行环境：需要 `pandas / pyyaml / openpyxl / torch / transformers / sklearn / openai`，可参考内部已验证的 Python 3.12 环境。laya 候选额外需要 `laya` 包（本地源码见 §5，`pip install laya` 或将本地 checkout 加入 `PYTHONPATH`）。
 
 ---
 
@@ -136,27 +136,29 @@ Skill 禁止自行判断“简单任务”或“复杂任务”，也禁止自�
 线上全量数据默认地址：
 
 ```text
-/mnt/dolphinfs/hdd_pool/docker/user/hadoop-peisongpa-llm-dolphin/hadoop-peisongpa-llm-dolphin/fanhuichuan/data/online_data
+/mnt/dolphinfs/hdd_pool/docker/user/<internal_mount>/<data_owner>/data/online_data
 ```
 
 候选模型默认地址：
 
 ```text
 macbert:
-/mnt/dolphinfs/hdd_pool/docker/user/hadoop-peisongpa-llm-dolphin/hadoop-peisongpa-llm-dolphin/xiayang14/huggingface.co/hfl/chinese-macbert-base
+/mnt/dolphinfs/hdd_pool/docker/user/<internal_mount>/<user>/huggingface.co/hfl/chinese-macbert-base
 
 h256:
-/mnt/dolphinfs/hdd_pool/docker/user/hadoop-peisongpa-llm-dolphin/hadoop-peisongpa-llm-dolphin/xiayang14/huggingface.co/hfl/minirbt-h256
+/mnt/dolphinfs/hdd_pool/docker/user/<internal_mount>/<user>/huggingface.co/hfl/minirbt-h256
 
 h288:
-/mnt/dolphinfs/hdd_pool/docker/user/hadoop-peisongpa-llm-dolphin/hadoop-peisongpa-llm-dolphin/xiayang14/huggingface.co/hfl/minirbt-h288
+/mnt/dolphinfs/hdd_pool/docker/user/<internal_mount>/<user>/huggingface.co/hfl/minirbt-h288
 
 laya_multilingual（type: laya 候选）:
 源码：
-/mnt/dolphinfs/hdd_pool/docker/user/hadoop-peisongpa-llm-dolphin/hadoop-peisongpa-llm-dolphin/xiayang14/safety/laya
+/mnt/dolphinfs/hdd_pool/docker/user/<internal_mount>/<user>/safety/laya
 checkpoint：task.yaml 未显式指定 path 时，从 HF Hub 下载
 （convaiinnovations/laya 仓库 multilingual 子目录，等价独立仓库 convaiinnovations/laya-multilingual）
 ```
+
+路径中的 `<internal_mount>` / `<user>` / `<data_owner>` 为占位符，部署时按实际内部挂载环境替换。
 
 如果 `task.yaml` 显式指定其他地址，以 `task.yaml` 为准。
 
@@ -704,5 +706,5 @@ versions:
 
 ### 18.4 现有项目落位
 
-`safety4/violate_privacy` 与 `safety4/law` 的 `laya/`、`kev/` 目录已按本约定
+内部安全类项目（如隐私合规、法律法规违规检测）的 `laya/`、`kev/` 目录已按本约定
 建立登记表（2026-09-30）。

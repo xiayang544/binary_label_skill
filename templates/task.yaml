@@ -40,7 +40,7 @@ input:
   seed_annotation_path: ""
 
   # 线上全量数据地址
-  online_data_path: "/mnt/dolphinfs/hdd_pool/docker/user/hadoop-peisongpa-llm-dolphin/hadoop-peisongpa-llm-dolphin/fanhuichuan/data/online_data"
+  online_data_path: "/mnt/dolphinfs/hdd_pool/docker/user/<internal_mount>/<data_owner>/data/online_data"
 
   # Gold 数据
   gold_positive_path: "data/gold/gold_positive.xlsx"
@@ -78,7 +78,7 @@ context:
 # ============================================================
 
 llm_api:
-  base_url: "https://aigc.sankuai.com/v1/openai/native"
+  base_url: "https://<llm-gateway>/v1/openai/native"
 
   # 建议留空走环境变量 LLM_API_KEY，避免 key 随版本目录快照扩散
   api_key: ""
@@ -313,15 +313,15 @@ models:
     h256:
       enabled: true
       # dir: "h_256"          # 可选，模型目录名覆盖
-      path: "/mnt/dolphinfs/hdd_pool/docker/user/hadoop-peisongpa-llm-dolphin/hadoop-peisongpa-llm-dolphin/xiayang14/huggingface.co/hfl/minirbt-h256"
+      path: "/mnt/dolphinfs/hdd_pool/docker/user/<internal_mount>/<user>/huggingface.co/hfl/minirbt-h256"
 
     h288:
       enabled: true
-      path: "/mnt/dolphinfs/hdd_pool/docker/user/hadoop-peisongpa-llm-dolphin/hadoop-peisongpa-llm-dolphin/xiayang14/huggingface.co/hfl/minirbt-h288"
+      path: "/mnt/dolphinfs/hdd_pool/docker/user/<internal_mount>/<user>/huggingface.co/hfl/minirbt-h288"
 
     macbert:
       enabled: true
-      path: "/mnt/dolphinfs/hdd_pool/docker/user/hadoop-peisongpa-llm-dolphin/hadoop-peisongpa-llm-dolphin/xiayang14/huggingface.co/hfl/chinese-macbert-base"
+      path: "/mnt/dolphinfs/hdd_pool/docker/user/<internal_mount>/<user>/huggingface.co/hfl/chinese-macbert-base"
 
     # laya 零训练候选示例（需要时将 enabled 改为 true）
     laya_multilingual:

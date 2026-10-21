@@ -11,7 +11,7 @@ llm_annotation_fields：
 
 接入配置（优先级：task.yaml llm_api > 环境变量 > 默认值）：
     llm_api:
-      base_url: "https://aigc.sankuai.com/v1/openai/native"
+      base_url: "https://<llm-gateway>/v1/openai/native"
       api_key: "..."
       gateway_names:            # 显示名 → 网关模型名（缺省取小写）
         "LongCat-Flash-Chat": "longcat-flash-chat"
@@ -37,7 +37,7 @@ except ImportError:
         sys.path.insert(0, _FALLBACK_PATH)
     from openai import OpenAI
 
-DEFAULT_BASE_URL = "https://aigc.sankuai.com/v1/openai/native"
+DEFAULT_BASE_URL = "https://<llm-gateway>/v1/openai/native"
 DEFAULT_API_KEY = os.environ.get("LLM_API_KEY", "")
 
 VALID_LABELS = {"positive", "negative"}

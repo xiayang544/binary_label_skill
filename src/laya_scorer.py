@@ -22,8 +22,8 @@ from . import common, text_utils
 # 每版本冻结的 question 配置（standard/ 的一部分，随版本演进、禁止回写历史版本）
 QUESTION_FILENAME = "laya_question.yaml"
 
-LAYA_SOURCE_PATH = ("/mnt/dolphinfs/hdd_pool/docker/user/hadoop-peisongpa-llm-dolphin/"
-                    "hadoop-peisongpa-llm-dolphin/xiayang14/safety/laya")
+LAYA_SOURCE_PATH = ("/mnt/dolphinfs/hdd_pool/docker/user/<internal_mount>/"
+                    "<user>/safety/laya")
 
 _INSTALL_HINT = (
     "laya 候选需要 laya 包：pip install laya，或将本地源码加入 PYTHONPATH：\n"
