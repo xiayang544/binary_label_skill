@@ -6,9 +6,9 @@
 
 整体流程图：
 
-![标签识别模型：冷启动 + 迭代闭环](two_stage_workflow.svg)
+![标签识别模型：冷启动 + 迭代闭环](two_stage_workflow.png)
 
-> 交互版（动画流程线、节点 hover）见 [`two_stage_workflow.html`](two_stage_workflow.html)，可直接用浏览器打开。完整执行契约以 [`SKILL.md`](SKILL.md) 为准，本 README 只做概览。
+> 交互版（动画流程线、节点 hover）见 [`two_stage_workflow.html`](two_stage_workflow.html)，可直接用浏览器打开；矢量版见 [`two_stage_workflow.svg`](two_stage_workflow.svg)。完整执行契约以 [`SKILL.md`](SKILL.md) 为准，本 README 只做概览。
 
 ---
 
